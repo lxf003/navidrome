@@ -78,15 +78,6 @@ RUN sed -i "s/'Navidrome'/'TinglePulse-Asmr'/g" src/common/Title.jsx && \
     sed -i 's/Navidrome/TinglePulse-Asmr/g' src/common/Title.jsx
 # ============================================================
 
-# ============================================================
-# 💡【新增加】禁用 PWA 缓存逻辑
-# 将 Service Worker 替换为一个“空”版本，只负责立即更新，不缓存任何文件。
-# 这能确保所有请求都经过您的 .NET 网关，避免缓存导致 SSO 失效。
-# ============================================================
-RUN echo "self.addEventListener('install', () => self.skipWaiting()); self.addEventListener('activate', () => self.clients.claim());" > src/sw.js
-
-# ============================================================
-
 RUN npm run build -- --outDir=/build
 
 FROM scratch AS ui-bundle
