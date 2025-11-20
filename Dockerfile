@@ -62,7 +62,7 @@ RUN sed -i "s/name: 'Navidrome'/name: 'TinglePulse-Asmr'/g" vite.config.js && \
     sed -i "s/short_name: 'Navidrome'/short_name: 'TinglePulse'/g" vite.config.js
 
 # 2. 修改浏览器标签页标题 (index.html)
-RUN sed -i 's/<title>Navidrome<\/title>/<title>TinglePulse-Asmr<\/title>/g' public/index.html
+RUN sed -i 's/<title>Navidrome<\/title>/<title>TinglePulse-Asmr<\/title>/g' index.html
 
 # 3. 修改登录页大标题 (Login.jsx)
 #    注意：替换双引号包裹的字符串和标签内容
@@ -71,8 +71,9 @@ RUN sed -i 's/"Navidrome"/"TinglePulse-Asmr"/g' src/layout/Login.jsx && \
 
 # 4. 【新】修改页面顶部标题组件 (Title.jsx)
 #    这是控制进入首页后左上角显示名称的关键
-RUN sed -i 's/Navidrome/TinglePulse-Asmr/g' src/common/Title.jsx
-
+# 仅替换单引号内和独立文本的 Navidrome
+RUN sed -i "s/'Navidrome'/'TinglePulse-Asmr'/g" src/common/Title.jsx && \
+    sed -i 's/Navidrome/TinglePulse-Asmr/g' src/common/Title.jsx
 # ============================================================
 
 RUN npm run build -- --outDir=/build
