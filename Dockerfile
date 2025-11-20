@@ -57,27 +57,21 @@ RUN npm ci
 # Build bundle
 COPY ui/ ./
 
-# ============================================================
-# 💡【关键修改】在这里插入替换命令
-# 使用 sed 命令批量替换关键文件中的品牌名称
-# ============================================================
-
-# 1. 修改 PWA 应用名称 (在 vite.config.js 中)
-#    将 name: 'Navidrome' 替换为 name: 'TinglePulse-Asmr'
-#    将 short_name: 'Navidrome' 替换为 short_name: 'TinglePulse'
+# 1. 修改 PWA 应用名称 (vite.config.js)
 RUN sed -i "s/name: 'Navidrome'/name: 'TinglePulse-Asmr'/g" vite.config.js && \
     sed -i "s/short_name: 'Navidrome'/short_name: 'TinglePulse'/g" vite.config.js
 
-# 2. 修改浏览器标题 (index.html)
+# 2. 修改浏览器标签页标题 (index.html)
 RUN sed -i 's/<title>Navidrome<\/title>/<title>TinglePulse-Asmr<\/title>/g' public/index.html
 
 # 3. 修改登录页大标题 (Login.jsx)
-#    注意：根据代码结构，路径是 src/layout/Login.jsx
-RUN sed -i 's/Navidrome/TinglePulse-Asmr/g' src/layout/Login.jsx
+#    注意：替换双引号包裹的字符串和标签内容
+RUN sed -i 's/"Navidrome"/"TinglePulse-Asmr"/g' src/layout/Login.jsx && \
+    sed -i 's/>Navidrome</>TinglePulse-Asmr</g' src/layout/Login.jsx
 
-# 4. 修改顶部导航栏名称 (AppBar.jsx)
-#    注意：根据代码结构，路径是 src/layout/AppBar.jsx
-RUN sed -i 's/"Navidrome"/"TinglePulse-Asmr"/g' src/layout/AppBar.jsx
+# 4. 【新】修改页面顶部标题组件 (Title.jsx)
+#    这是控制进入首页后左上角显示名称的关键
+RUN sed -i 's/Navidrome/TinglePulse-Asmr/g' src/common/Title.jsx
 
 # ============================================================
 
