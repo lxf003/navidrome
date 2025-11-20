@@ -62,6 +62,7 @@ RUN sed -i "s/name: 'Navidrome'/name: 'TinglePulse-Asmr'/g" vite.config.js && \
     sed -i "s/short_name: 'Navidrome'/short_name: 'TinglePulse'/g" vite.config.js
 
 # 2. 修改浏览器标签页标题 (index.html)
+#    ✅ 路径已修正为 index.html (Vite 项目根目录)
 RUN sed -i 's/<title>Navidrome<\/title>/<title>TinglePulse-Asmr<\/title>/g' index.html
 
 # 3. 修改登录页大标题 (Login.jsx)
@@ -69,11 +70,21 @@ RUN sed -i 's/<title>Navidrome<\/title>/<title>TinglePulse-Asmr<\/title>/g' inde
 RUN sed -i 's/"Navidrome"/"TinglePulse-Asmr"/g' src/layout/Login.jsx && \
     sed -i 's/>Navidrome</>TinglePulse-Asmr</g' src/layout/Login.jsx
 
-# 4. 【新】修改页面顶部标题组件 (Title.jsx)
+# 4. 修改页面顶部标题组件 (Title.jsx)
 #    这是控制进入首页后左上角显示名称的关键
-# 仅替换单引号内和独立文本的 Navidrome
+#    第一条命令替换带单引号的 'Navidrome' (用于代码逻辑)
+#    第二条命令替换纯文本 Navidrome (用于显示)
 RUN sed -i "s/'Navidrome'/'TinglePulse-Asmr'/g" src/common/Title.jsx && \
     sed -i 's/Navidrome/TinglePulse-Asmr/g' src/common/Title.jsx
+# ============================================================
+
+# ============================================================
+# 💡【新增加】禁用 PWA 缓存逻辑
+# 将 Service Worker 替换为一个“空”版本，只负责立即更新，不缓存任何文件。
+# 这能确保所有请求都经过您的 .NET 网关，避免缓存导致 SSO 失效。
+# ============================================================
+RUN echo "self.addEventListener('install', () => self.skipWaiting()); self.addEventListener('activate', () => self.clients.claim());" > src/sw.js
+
 # ============================================================
 
 RUN npm run build -- --outDir=/build
