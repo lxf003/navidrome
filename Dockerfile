@@ -78,6 +78,12 @@ RUN sed -i "s/'Navidrome'/'TinglePulse-Asmr'/g" src/common/Title.jsx && \
     sed -i 's/Navidrome/TinglePulse-Asmr/g' src/common/Title.jsx
 # ============================================================
 
+# 5. 【关键修复】安全地禁用 PWA 缓存
+#    方法：修改 vite.config.js，在 VitePWA 配置中添加 'selfDestroying: true'
+#    这会让 Service Worker 仍然生成（不报错），但在浏览器加载时会立即注销自己，
+#    从而强制浏览器每次都从网络获取最新内容。
+RUN sed -i "s/devOptions: {/selfDestroying: true, devOptions: {/g" vite.config.js
+
 RUN npm run build -- --outDir=/build
 
 FROM scratch AS ui-bundle
