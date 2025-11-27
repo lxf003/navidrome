@@ -84,6 +84,9 @@ RUN sed -i "s/'Navidrome'/'TinglePulse-Asmr'/g" src/common/Title.jsx && \
 #    从而强制浏览器每次都从网络获取最新内容。
 RUN sed -i "s/devOptions: {/selfDestroying: true, devOptions: {/g" vite.config.js
 
+# 关键步骤：用 sed 修改 Player.jsx 中的默认位置
+RUN sed -i "s/defaultPosition: {[^}]*}/defaultPosition: { bottom: 20, right: 20 }/g" src/audioplayer/Player.jsx
+
 RUN npm run build -- --outDir=/build
 
 FROM scratch AS ui-bundle
