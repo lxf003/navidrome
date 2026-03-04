@@ -16,6 +16,8 @@ import {
   usePermissions,
 } from 'react-admin'
 import Switch from '@material-ui/core/Switch'
+import { Avatar } from '@material-ui/core'
+import { makeStyles } from '@material-ui/core/styles'
 import { useMediaQuery } from '@material-ui/core'
 import {
   DurationField,
@@ -27,6 +29,18 @@ import {
 } from '../common'
 import PlaylistListActions from './PlaylistListActions'
 import ChangePublicStatusButton from './ChangePublicStatusButton'
+import subsonic from '../subsonic'
+
+const useStyles = makeStyles((theme) => ({
+  button: {
+    color: theme.palette.type === 'dark' ? 'white' : undefined,
+  },
+  coverArt: {
+    width: '40px',
+    height: '40px',
+    borderRadius: '4px',
+  },
+}))
 
 const PlaylistFilter = (props) => {
   const { permissions } = usePermissions()
@@ -112,13 +126,43 @@ const ToggleAutoImport = ({ resource, source }) => {
   ) : null
 }
 
-const PlaylistListBulkActions = (props) => (
-  <>
-    <ChangePublicStatusButton public={true} {...props} />
-    <ChangePublicStatusButton public={false} {...props} />
-    <BulkDeleteButton {...props} />
-  </>
-)
+const CoverArtField = () => {
+  const classes = useStyles()
+  const record = useRecordContext()
+  if (!record) return null
+  return (
+    <Avatar
+      src={subsonic.getCoverArtUrl(record, 80, true)}
+      variant="square"
+      className={classes.coverArt}
+      alt={record.name}
+    />
+  )
+}
+
+CoverArtField.defaultProps = {
+  label: '',
+  sortable: false,
+}
+
+const PlaylistListBulkActions = (props) => {
+  const classes = useStyles()
+  return (
+    <>
+      <ChangePublicStatusButton
+        public={true}
+        {...props}
+        className={classes.button}
+      />
+      <ChangePublicStatusButton
+        public={false}
+        {...props}
+        className={classes.button}
+      />
+      <BulkDeleteButton {...props} className={classes.button} />
+    </>
+  )
+}
 
 const PlaylistList = (props) => {
   const isXsmall = useMediaQuery((theme) => theme.breakpoints.down('xs'))
@@ -152,11 +196,13 @@ const PlaylistList = (props) => {
     <List
       {...props}
       exporter={false}
+      sort={{ field: 'name', order: 'ASC' }}
       filters={<PlaylistFilter />}
       actions={<PlaylistListActions />}
       bulkActionButtons={!isXsmall && <PlaylistListBulkActions />}
     >
       <Datagrid rowClick="show" isRowSelectable={(r) => isWritable(r?.ownerId)}>
+        <CoverArtField source="id" />
         <TextField source="name" />
         {columns}
         <Writable>

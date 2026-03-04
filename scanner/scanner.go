@@ -11,8 +11,8 @@ import (
 	ppl "github.com/google/go-pipeline/pkg/pipeline"
 	"github.com/navidrome/navidrome/conf"
 	"github.com/navidrome/navidrome/consts"
-	"github.com/navidrome/navidrome/core"
 	"github.com/navidrome/navidrome/core/artwork"
+	"github.com/navidrome/navidrome/core/playlists"
 	"github.com/navidrome/navidrome/db"
 	"github.com/navidrome/navidrome/log"
 	"github.com/navidrome/navidrome/model"
@@ -23,16 +23,17 @@ import (
 type scannerImpl struct {
 	ds  model.DataStore
 	cw  artwork.CacheWarmer
-	pls core.Playlists
+	pls playlists.Playlists
 }
 
 // scanState holds the state of an in-progress scan, to be passed to the various phases
 type scanState struct {
-	progress        chan<- *ProgressInfo
-	fullScan        bool
-	changesDetected atomic.Bool
-	libraries       model.Libraries  // Store libraries list for consistency across phases
-	targets         map[int][]string // Optional: map[libraryID][]folderPaths for selective scans
+	progress          chan<- *ProgressInfo
+	fullScan          bool
+	changesDetected   atomic.Bool
+	libraries         model.Libraries  // Store libraries list for consistency across phases
+	targets           map[int][]string // Optional: map[libraryID][]folderPaths for selective scans
+	totalLibraryCount int              // Total number of libraries (unfiltered), for cross-library move detection
 }
 
 func (s *scanState) sendProgress(info *ProgressInfo) {
@@ -73,6 +74,7 @@ func (s *scannerImpl) scanFolders(ctx context.Context, fullScan bool, targets []
 		state.sendWarning(fmt.Sprintf("getting libraries: %s", err))
 		return
 	}
+	state.totalLibraryCount = len(allLibs)
 
 	if len(targets) > 0 {
 		// Selective scan: filter libraries and build targets map

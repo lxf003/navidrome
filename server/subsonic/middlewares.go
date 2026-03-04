@@ -56,7 +56,7 @@ func fromInternalOrProxyAuth(r *http.Request) (string, bool) {
 		return username, true
 	}
 
-	return server.UsernameFromReverseProxyHeader(r), false
+	return server.UsernameFromExtAuthHeader(r), false
 }
 
 func checkRequiredParameters(next http.Handler) http.Handler {
@@ -159,7 +159,7 @@ func validateCredentials(user *model.User, pass, token, salt, jwt string) error 
 	switch {
 	case jwt != "":
 		claims, err := auth.Validate(jwt)
-		valid = err == nil && claims["sub"] == user.UserName
+		valid = err == nil && claims.Subject == user.UserName
 	case pass != "":
 		if strings.HasPrefix(pass, "enc:") {
 			if dec, err := hex.DecodeString(pass[4:]); err == nil {

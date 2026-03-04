@@ -40,7 +40,7 @@ func createPhaseFolders(ctx context.Context, state *scanState, ds model.DataStor
 		job, err := newScanJob(ctx, ds, cw, lib, state.fullScan, targetFolders)
 		if err != nil {
 			log.Error(ctx, "Scanner: Error creating scan context", "lib", lib.Name, err)
-			state.sendWarning(err.Error())
+			state.sendError(err)
 			continue
 		}
 		jobs = append(jobs, job)
@@ -76,6 +76,12 @@ func newScanJob(ctx context.Context, ds model.DataStore, cw artwork.CacheWarmer,
 		log.Error(ctx, "Error getting fs for library", "library", lib.Name, "path", lib.Path, err)
 		return nil, fmt.Errorf("getting fs for library: %w", err)
 	}
+
+	// Ensure FullScanInProgress reflects the current scan request.
+	// This is important when resuming an interrupted quick scan as a full scan:
+	// the DB may have FullScanInProgress=false, but we need it true for isOutdated() to work correctly.
+	lib.FullScanInProgress = lib.FullScanInProgress || fullScan
+
 	return &scanJob{
 		lib:           lib,
 		fs:            fsys,
@@ -324,6 +330,9 @@ func (p *phaseFolders) persistChanges(entry *folderEntry) (*folderEntry, error) 
 	defer p.measure(entry)()
 	p.state.changesDetected.Store(true)
 
+	// Collect artwork IDs to pre-cache after the transaction commits
+	var artworkIDs []model.ArtworkID
+
 	err := p.ds.WithTx(func(tx model.DataStore) error {
 		// Instantiate all repositories just once per folder
 		folderRepo := tx.Folder(p.ctx)
@@ -362,7 +371,7 @@ func (p *phaseFolders) persistChanges(entry *folderEntry) (*folderEntry, error) 
 				return err
 			}
 			if entry.artists[i].Name != consts.UnknownArtist && entry.artists[i].Name != consts.VariousArtists {
-				entry.job.cw.PreCache(entry.artists[i].CoverArtID())
+				artworkIDs = append(artworkIDs, entry.artists[i].CoverArtID())
 			}
 		}
 
@@ -374,7 +383,7 @@ func (p *phaseFolders) persistChanges(entry *folderEntry) (*folderEntry, error) 
 				return err
 			}
 			if entry.albums[i].Name != consts.UnknownAlbum {
-				entry.job.cw.PreCache(entry.albums[i].CoverArtID())
+				artworkIDs = append(artworkIDs, entry.albums[i].CoverArtID())
 			}
 		}
 
@@ -411,6 +420,14 @@ func (p *phaseFolders) persistChanges(entry *folderEntry) (*folderEntry, error) 
 	if err != nil {
 		log.Error(p.ctx, "Scanner: Error persisting changes to DB", "folder", entry.path, err)
 	}
+
+	// Pre-cache artwork after the transaction commits successfully
+	if err == nil {
+		for _, artID := range artworkIDs {
+			entry.job.cw.PreCache(artID)
+		}
+	}
+
 	return entry, err
 }
 

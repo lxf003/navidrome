@@ -36,7 +36,8 @@
         "bitDepth": "Bit diepte",
         "sampleRate": "Sample waarde",
         "missing": "Ontbrekend",
-        "libraryName": "Bibliotheek"
+        "libraryName": "Bibliotheek",
+        "composer": ""
       },
       "actions": {
         "addToQueue": "Voeg toe aan wachtrij",
@@ -46,7 +47,8 @@
         "download": "Downloaden",
         "playNext": "Volgende",
         "info": "Meer info",
-        "showInPlaylist": "Toon in afspeellijst"
+        "showInPlaylist": "Toon in afspeellijst",
+        "instantMix": ""
       }
     },
     "album": {
@@ -301,14 +303,19 @@
       "actions": {
         "scan": "Scan bibliotheek",
         "manageUsers": "Beheer gebruikerstoegang",
-        "viewDetails": "Bekijk details"
+        "viewDetails": "Bekijk details",
+        "quickScan": "Snelle scan",
+        "fullScan": "Volledige scan"
       },
       "notifications": {
         "created": "Bibliotheek succesvol aangemaakt",
         "updated": "Bibliotheek succesvol bijgewerkt",
         "deleted": "Bibliotheek succesvol verwijderd",
         "scanStarted": "Bibliotheekscan is gestart",
-        "scanCompleted": "Bibliotheekscan is voltooid"
+        "scanCompleted": "Bibliotheekscan is voltooid",
+        "quickScanStarted": "Snelle scan gestart",
+        "fullScanStarted": "Volledige scan gestart",
+        "scanError": "Fout bij start van scan. Check de logs"
       },
       "validation": {
         "nameRequired": "Bibliotheek naam is vereist",
@@ -322,6 +329,80 @@
         "deleteConfirm": "Weet je zeker dat je deze bibliotheek wil verwijderen? Dit verwijdert ook alle gerelateerde data en gebruikerstoegang.",
         "scanInProgress": "Scan is bezig...",
         "noLibrariesAssigned": "Geen bibliotheken aan deze gebruiker toegewezen"
+      }
+    },
+    "plugin": {
+      "name": "Plugin |||| Plugins",
+      "fields": {
+        "id": "ID",
+        "name": "Naam",
+        "description": "Omschrijving",
+        "version": "Versie",
+        "author": "Auteur",
+        "website": "Website",
+        "permissions": "Permissies",
+        "enabled": "Aangezet",
+        "status": "Status",
+        "path": "Pad",
+        "lastError": "Fout",
+        "hasError": "Fout",
+        "updatedAt": "Geupdate",
+        "createdAt": "Geinstalleerd",
+        "configKey": "Sleutel",
+        "configValue": "Waarde",
+        "allUsers": "Alle gebruikers toelaten",
+        "selectedUsers": "Geselecteerde gebruikers",
+        "allLibraries": "Alle bibliotheken toestaan",
+        "selectedLibraries": "Geselecteerde bibliotheken"
+      },
+      "sections": {
+        "status": "Status",
+        "info": "Plugin informatie",
+        "configuration": "Configuratie",
+        "manifest": "Manifest",
+        "usersPermission": "Gebruikers permissie",
+        "libraryPermission": "Bibliotheekpermissie"
+      },
+      "status": {
+        "enabled": "Aangezet",
+        "disabled": "Uitgezet"
+      },
+      "actions": {
+        "enable": "Aanzetten",
+        "disable": "Uitzetten",
+        "disabledDueToError": "Herstel de fout voor aanzetten",
+        "disabledUsersRequired": "Selecteer gebruikers voor aanzetten",
+        "disabledLibrariesRequired": "Selecteer bibliotheek voor aanzetten",
+        "addConfig": "Configuratie toevoegen",
+        "rescan": "Opnieuw scannen"
+      },
+      "notifications": {
+        "enabled": "Plugin actief",
+        "disabled": "Plugin niet actief",
+        "updated": "Plugin geupdate",
+        "error": "Fout bij updaten plugin"
+      },
+      "validation": {
+        "invalidJson": "Configuratie moet geldige JSON zijn"
+      },
+      "messages": {
+        "configHelp": "",
+        "clickPermissions": "Klik op permissie voor details",
+        "noConfig": "Geen configuratie ingesteld",
+        "allUsersHelp": "",
+        "noUsers": "Geen gebruikers geselecteerd",
+        "permissionReason": "Reden",
+        "usersRequired": "",
+        "allLibrariesHelp": "",
+        "noLibraries": "Geen bibliotheken geselecteerd",
+        "librariesRequired": "",
+        "requiredHosts": "Benodigde hosts",
+        "configValidationError": "",
+        "schemaRenderError": ""
+      },
+      "placeholders": {
+        "configKey": "Sleutel",
+        "configValue": "Waarde"
       }
     }
   },
@@ -506,7 +587,8 @@
     "remove_all_missing_title": "Verwijder alle ontbrekende bestanden",
     "remove_all_missing_content": "Weet je zeker dat je alle ontbrekende bestanden van de database wil verwijderen? Dit wist permanent al hun referenties inclusief afspeel tellers en beoordelingen.",
     "noSimilarSongsFound": "Geen vergelijkbare nummers gevonden",
-    "noTopSongsFound": "Geen beste nummers gevonden"
+    "noTopSongsFound": "Geen beste nummers gevonden",
+    "startingInstantMix": ""
   },
   "menu": {
     "library": "Bibliotheek",
@@ -604,7 +686,8 @@
     "serverDown": "Offline",
     "scanType": "Type",
     "status": "Scan fout",
-    "elapsedTime": "Verlopen tijd"
+    "elapsedTime": "Verlopen tijd",
+    "selectiveScan": "Selectief"
   },
   "help": {
     "title": "Navidrome sneltoetsen",

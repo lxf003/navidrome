@@ -21,6 +21,7 @@ const LibraryFilter = (props) => (
 
 const LibraryList = (props) => {
   const isXsmall = useMediaQuery((theme) => theme.breakpoints.down('xs'))
+  const isDesktop = useMediaQuery((theme) => theme.breakpoints.up('lg'))
   useResourceRefresh('library')
 
   return (
@@ -40,17 +41,13 @@ const LibraryList = (props) => {
       ) : (
         <Datagrid rowClick="edit">
           <TextField source="name" />
-          <TextField source="path" />
+          {isDesktop && <TextField source="path" />}
           <BooleanField source="defaultNewUsers" />
-          <NumberField source="totalSongs" label="Songs" />
-          <NumberField source="totalAlbums" label="Albums" />
-          <NumberField source="totalMissingFiles" label="Missing Files" />
+          <NumberField source="totalSongs" />
+          <NumberField source="totalAlbums" />
+          <NumberField source="totalMissingFiles" />
           <SizeField source="totalSize" />
-          <DateField
-            source="lastScanAt"
-            label="Last Scan"
-            sortByOrder={'DESC'}
-          />
+          <DateField source="lastScanAt" sortByOrder={'DESC'} />
         </Datagrid>
       )}
     </List>

@@ -38,7 +38,7 @@ type MediaFile struct {
 	AlbumArtistID string `structs:"album_artist_id" json:"albumArtistId"` // Deprecated: Use Participants instead
 	// AlbumArtist is the display name used for the album artist.
 	AlbumArtist          string   `structs:"album_artist" json:"albumArtist"`
-	AlbumID              string   `structs:"album_id" json:"albumId"`
+	AlbumID              string   `structs:"album_id" json:"albumId" hash:"ignore"`
 	HasCoverArt          bool     `structs:"has_cover_art" json:"hasCoverArt"`
 	TrackNumber          int      `structs:"track_number" json:"trackNumber"`
 	DiscNumber           int      `structs:"disc_number" json:"discNumber"`
@@ -95,10 +95,17 @@ type MediaFile struct {
 }
 
 func (mf MediaFile) FullTitle() string {
-	if conf.Server.Subsonic.AppendSubtitle && mf.Tags[TagSubtitle] != nil {
+	if conf.Server.Subsonic.AppendSubtitle && len(mf.Tags[TagSubtitle]) > 0 {
 		return fmt.Sprintf("%s (%s)", mf.Title, mf.Tags[TagSubtitle][0])
 	}
 	return mf.Title
+}
+
+func (mf MediaFile) FullAlbumName() string {
+	if conf.Server.Subsonic.AppendAlbumVersion && len(mf.Tags[TagAlbumVersion]) > 0 {
+		return fmt.Sprintf("%s (%s)", mf.Album, mf.Tags[TagAlbumVersion][0])
+	}
+	return mf.Album
 }
 
 func (mf MediaFile) ContentType() string {
@@ -140,7 +147,7 @@ func (mf MediaFile) Hash() string {
 	}
 	hash, _ := hashstructure.Hash(mf, opts)
 	sum := md5.New()
-	sum.Write([]byte(fmt.Sprintf("%d", hash)))
+	sum.Write(fmt.Appendf(nil, "%d", hash))
 	sum.Write(mf.Tags.Hash())
 	sum.Write(mf.Participants.Hash())
 	return fmt.Sprintf("%x", sum.Sum(nil))
@@ -353,11 +360,13 @@ type MediaFileCursor iter.Seq2[MediaFile, error]
 
 type MediaFileRepository interface {
 	CountAll(options ...QueryOptions) (int64, error)
+	CountBySuffix(options ...QueryOptions) (map[string]int64, error)
 	Exists(id string) (bool, error)
 	Put(m *MediaFile) error
 	Get(id string) (*MediaFile, error)
 	GetWithParticipants(id string) (*MediaFile, error)
 	GetAll(options ...QueryOptions) (MediaFiles, error)
+	GetAllByTags(tag TagName, values []string, options ...QueryOptions) (MediaFiles, error)
 	GetCursor(options ...QueryOptions) (MediaFileCursor, error)
 	Delete(id string) error
 	DeleteMissing(ids []string) error

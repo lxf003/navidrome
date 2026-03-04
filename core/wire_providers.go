@@ -5,8 +5,10 @@ import (
 	"github.com/navidrome/navidrome/core/agents"
 	"github.com/navidrome/navidrome/core/external"
 	"github.com/navidrome/navidrome/core/ffmpeg"
+	"github.com/navidrome/navidrome/core/lyrics"
 	"github.com/navidrome/navidrome/core/metrics"
 	"github.com/navidrome/navidrome/core/playback"
+	"github.com/navidrome/navidrome/core/playlists"
 	"github.com/navidrome/navidrome/core/scrobbler"
 )
 
@@ -16,8 +18,9 @@ var Set = wire.NewSet(
 	NewArchiver,
 	NewPlayers,
 	NewShare,
-	NewPlaylists,
+	playlists.NewPlaylists,
 	NewLibrary,
+	NewUser,
 	NewMaintenance,
 	agents.GetAgents,
 	external.NewProvider,
@@ -26,4 +29,5 @@ var Set = wire.NewSet(
 	scrobbler.GetPlayTracker,
 	playback.GetInstance,
 	metrics.GetInstance,
+	lyrics.NewLyrics,
 )

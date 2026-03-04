@@ -14,24 +14,40 @@ import (
 	"github.com/navidrome/navidrome/conf"
 	"github.com/navidrome/navidrome/core"
 	"github.com/navidrome/navidrome/core/metrics"
+	playlistsvc "github.com/navidrome/navidrome/core/playlists"
 	"github.com/navidrome/navidrome/log"
 	"github.com/navidrome/navidrome/model"
 	"github.com/navidrome/navidrome/model/request"
 	"github.com/navidrome/navidrome/server"
 )
 
-type Router struct {
-	http.Handler
-	ds          model.DataStore
-	share       core.Share
-	playlists   core.Playlists
-	insights    metrics.Insights
-	libs        core.Library
-	maintenance core.Maintenance
+// PluginManager defines the interface for plugin management operations.
+// This interface is used by the API handlers to enable/disable plugins and update configuration.
+type PluginManager interface {
+	EnablePlugin(ctx context.Context, id string) error
+	DisablePlugin(ctx context.Context, id string) error
+	ValidatePluginConfig(ctx context.Context, id, configJSON string) error
+	UpdatePluginConfig(ctx context.Context, id, configJSON string) error
+	UpdatePluginUsers(ctx context.Context, id, usersJSON string, allUsers bool) error
+	UpdatePluginLibraries(ctx context.Context, id, librariesJSON string, allLibraries, allowWriteAccess bool) error
+	RescanPlugins(ctx context.Context) error
+	UnloadDisabledPlugins(ctx context.Context)
 }
 
-func New(ds model.DataStore, share core.Share, playlists core.Playlists, insights metrics.Insights, libraryService core.Library, maintenance core.Maintenance) *Router {
-	r := &Router{ds: ds, share: share, playlists: playlists, insights: insights, libs: libraryService, maintenance: maintenance}
+type Router struct {
+	http.Handler
+	ds            model.DataStore
+	share         core.Share
+	playlists     playlistsvc.Playlists
+	insights      metrics.Insights
+	libs          core.Library
+	users         core.User
+	maintenance   core.Maintenance
+	pluginManager PluginManager
+}
+
+func New(ds model.DataStore, share core.Share, playlists playlistsvc.Playlists, insights metrics.Insights, libraryService core.Library, userService core.User, maintenance core.Maintenance, pluginManager PluginManager) *Router {
+	r := &Router{ds: ds, share: share, playlists: playlists, insights: insights, libs: libraryService, users: userService, maintenance: maintenance, pluginManager: pluginManager}
 	r.Handler = r.routes()
 	return r
 }
@@ -47,7 +63,7 @@ func (api *Router) routes() http.Handler {
 		r.Use(server.Authenticator(api.ds))
 		r.Use(server.JWTRefresher)
 		r.Use(server.UpdateLastAccessMiddleware(api.ds))
-		api.R(r, "/user", model.User{}, true)
+		api.RX(r, "/user", api.users.NewRepository, true)
 		api.R(r, "/song", model.MediaFile{}, false)
 		api.R(r, "/album", model.Album{}, false)
 		api.R(r, "/artist", model.Artist{}, false)
@@ -72,6 +88,7 @@ func (api *Router) routes() http.Handler {
 			api.addInspectRoute(r)
 			api.addConfigRoute(r)
 			api.addUserLibraryRoute(r)
+			api.addPluginRoute(r)
 			api.RX(r, "/library", api.libs.NewRepository, true)
 		})
 	})
@@ -79,7 +96,7 @@ func (api *Router) routes() http.Handler {
 	return r
 }
 
-func (api *Router) R(r chi.Router, pathPrefix string, model interface{}, persistable bool) {
+func (api *Router) R(r chi.Router, pathPrefix string, model any, persistable bool) {
 	constructor := func(ctx context.Context) rest.Repository {
 		return api.ds.Resource(ctx, model)
 	}
@@ -105,7 +122,7 @@ func (api *Router) RX(r chi.Router, pathPrefix string, constructor rest.Reposito
 
 func (api *Router) addPlaylistRoute(r chi.Router) {
 	constructor := func(ctx context.Context) rest.Repository {
-		return api.ds.Resource(ctx, model.Playlist{})
+		return api.playlists.NewRepository(ctx)
 	}
 
 	r.Route("/playlist", func(r chi.Router) {
@@ -123,6 +140,8 @@ func (api *Router) addPlaylistRoute(r chi.Router) {
 			r.Get("/", rest.Get(constructor))
 			r.Put("/", rest.Put(constructor))
 			r.Delete("/", rest.Delete(constructor))
+			r.Post("/image", uploadPlaylistImage(api.playlists))
+			r.Delete("/image", deletePlaylistImage(api.playlists))
 		})
 	})
 }
@@ -130,26 +149,26 @@ func (api *Router) addPlaylistRoute(r chi.Router) {
 func (api *Router) addPlaylistTrackRoute(r chi.Router) {
 	r.Route("/playlist/{playlistId}/tracks", func(r chi.Router) {
 		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-			getPlaylist(api.ds)(w, r)
+			getPlaylist(api.playlists)(w, r)
 		})
 		r.With(server.URLParamsMiddleware).Route("/", func(r chi.Router) {
 			r.Delete("/", func(w http.ResponseWriter, r *http.Request) {
-				deleteFromPlaylist(api.ds)(w, r)
+				deleteFromPlaylist(api.playlists)(w, r)
 			})
 			r.Post("/", func(w http.ResponseWriter, r *http.Request) {
-				addToPlaylist(api.ds)(w, r)
+				addToPlaylist(api.playlists)(w, r)
 			})
 		})
 		r.Route("/{id}", func(r chi.Router) {
 			r.Use(server.URLParamsMiddleware)
 			r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-				getPlaylistTrack(api.ds)(w, r)
+				getPlaylistTrack(api.playlists)(w, r)
 			})
 			r.Put("/", func(w http.ResponseWriter, r *http.Request) {
-				reorderItem(api.ds)(w, r)
+				reorderItem(api.playlists)(w, r)
 			})
 			r.Delete("/", func(w http.ResponseWriter, r *http.Request) {
-				deleteFromPlaylist(api.ds)(w, r)
+				deleteFromPlaylist(api.playlists)(w, r)
 			})
 		})
 	})
@@ -157,7 +176,7 @@ func (api *Router) addPlaylistTrackRoute(r chi.Router) {
 
 func (api *Router) addSongPlaylistsRoute(r chi.Router) {
 	r.With(server.URLParamsMiddleware).Get("/song/{id}/playlists", func(w http.ResponseWriter, r *http.Request) {
-		getSongPlaylists(api.ds)(w, r)
+		getSongPlaylists(api.playlists)(w, r)
 	})
 }
 
@@ -191,7 +210,7 @@ func writeDeleteManyResponse(w http.ResponseWriter, r *http.Request, ids []strin
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	}
-	_, err = w.Write(resp)
+	_, err = w.Write(resp) //nolint:gosec
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -227,7 +246,7 @@ func (api *Router) addInsightsRoute(r chi.Router) {
 	r.Get("/insights/*", func(w http.ResponseWriter, r *http.Request) {
 		last, success := api.insights.LastRun(r.Context())
 		if conf.Server.EnableInsightsCollector {
-			_, _ = w.Write([]byte(`{"id":"insights_status", "lastRun":"` + last.Format("2006-01-02 15:04:05") + `", "success":` + strconv.FormatBool(success) + `}`))
+			_, _ = w.Write([]byte(`{"id":"insights_status", "lastRun":"` + last.Format("2006-01-02 15:04:05") + `", "success":` + strconv.FormatBool(success) + `}`)) //nolint:gosec
 		} else {
 			_, _ = w.Write([]byte(`{"id":"insights_status", "lastRun":"disabled", "success":false}`))
 		}
